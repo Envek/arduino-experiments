@@ -4,6 +4,11 @@
 #define GREEN_A_PIN 11
 #define GREEN_B_PIN  6
 #define YELLOW_PIN   9
+#define S_DATA_PIN   2
+#define S_LATCH_PIN  3
+#define S_CLOCK_PIN  4
+#define BAR_09_PIN  12
+#define BAR_10_PIN  13
 
 #define YELLOW  128
 #define RED_A    64
@@ -13,9 +18,11 @@
 #define BUZZER    4
 
 char turn = 'A';
-int turnLengthMillis = 10000;
+int turnLengthMillis = 11000;
 int turnStartedAt = 0;
 bool enabled = true;
+
+void barDisplay(int count);
 
 void setup() {
   pinMode(BUZZER_PIN,  OUTPUT);
@@ -24,6 +31,11 @@ void setup() {
   pinMode(GREEN_A_PIN, OUTPUT);
   pinMode(GREEN_B_PIN, OUTPUT);
   pinMode(YELLOW_PIN,  OUTPUT);
+  pinMode(S_DATA_PIN,  OUTPUT);
+  pinMode(S_LATCH_PIN, OUTPUT);
+  pinMode(S_CLOCK_PIN, OUTPUT);
+  pinMode(BAR_09_PIN,  OUTPUT);
+  pinMode(BAR_10_PIN,  OUTPUT);
   // Попищим и посветим для проверки
   tone(BUZZER_PIN, 3000, 1000);
   digitalWrite(RED_A_PIN,   HIGH);
@@ -31,6 +43,9 @@ void setup() {
   digitalWrite(GREEN_A_PIN, HIGH);
   digitalWrite(GREEN_B_PIN, HIGH);
   digitalWrite(YELLOW_PIN,  HIGH);
+  digitalWrite(BAR_09_PIN,  HIGH);
+  digitalWrite(BAR_10_PIN,  HIGH);
+  barDisplay(10);
   delay(1000);
   noTone(BUZZER_PIN);
   // Мы начинаем КВН!
@@ -78,8 +93,27 @@ void loop() {
   } else {
     noTone(BUZZER_PIN);
   }
+  int left = millisLeft();
+  if (left > 1000)
+    barDisplay((millisLeft() - 1000) / ((turnLengthMillis - 1000) / 10) + 1);
+  else barDisplay(0);
   if (millisLeft() <= 0) {
     turn = (turn == 'A') ? 'B' : 'A';
     turnStartedAt = millis();
   }
+}
+
+void barDisplay(int count) {
+  byte mask = 0, b09 = LOW, b10 = LOW;
+  if (count) {
+    byte cnt = count > 8 ? 8 : count;
+    for (byte i = 0; i < cnt; i++) mask += (1 << i);
+  }
+  if (count > 8) b09 = HIGH;
+  if (count > 9) b10 = HIGH;
+  digitalWrite(S_LATCH_PIN, LOW);
+  shiftOut(S_DATA_PIN, S_CLOCK_PIN, MSBFIRST, mask);
+  digitalWrite(S_LATCH_PIN, HIGH);
+  digitalWrite(BAR_09_PIN, b09);
+  digitalWrite(BAR_10_PIN, b10);
 }
