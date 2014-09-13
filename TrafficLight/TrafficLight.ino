@@ -72,7 +72,7 @@ int stage() {
       stg += (turn == 'A') ? RED_B   : RED_A;
       if (left > 4000 || left%1000 < 500)
         stg += (turn == 'A') ? GREEN_A : GREEN_B;
-      if ((left > 4000 && left%1000 < 100) || (left <= 4000 && left%500 < 100))
+      if ((left > 4000 && left%1000 > 900) || (left <= 4000 && left%500 > 400))
         stg += BUZZER;
     }
   } else {
