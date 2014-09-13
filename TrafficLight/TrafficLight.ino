@@ -9,6 +9,7 @@
 #define S_CLOCK_PIN  4
 #define BAR_09_PIN  12
 #define BAR_10_PIN  13
+#define POT_PIN     A0
 
 #define YELLOW  128
 #define RED_A    64
@@ -19,10 +20,15 @@
 
 char turn = 'A';
 int turnLengthMillis = 11000;
+int turnLengthMinMillis = 10000;
+int turnLengthMaxMillis = 30000;
+int yellowLengthMillis = 1500;
+int blinkingGreenLengthMillis = 3000;
 int turnStartedAt = 0;
 bool enabled = true;
 
 void barDisplay(int count);
+void calculateTurnLength();
 
 void setup() {
   pinMode(BUZZER_PIN,  OUTPUT);
@@ -36,6 +42,7 @@ void setup() {
   pinMode(S_CLOCK_PIN, OUTPUT);
   pinMode(BAR_09_PIN,  OUTPUT);
   pinMode(BAR_10_PIN,  OUTPUT);
+  pinMode(POT_PIN,      INPUT);
   // Попищим и посветим для проверки
   tone(BUZZER_PIN, 3000, 1000);
   digitalWrite(RED_A_PIN,   HIGH);
@@ -49,6 +56,7 @@ void setup() {
   delay(1000);
   noTone(BUZZER_PIN);
   // Мы начинаем КВН!
+  calculateTurnLength();
   turnStartedAt = millis();
 }
 
@@ -65,14 +73,14 @@ int stage() {
   int stg = 0;
   if (enabled) {
     int left = millisLeft();
-    if (left < 1000) {
+    if (left < yellowLengthMillis) {
       stg += YELLOW;
       stg += (turn == 'A') ? RED_B : RED_A;
     } else {
       stg += (turn == 'A') ? RED_B   : RED_A;
-      if (left > 4000 || left%1000 < 500)
+      if (left > (yellowLengthMillis+blinkingGreenLengthMillis) || left%1000 < 500)
         stg += (turn == 'A') ? GREEN_A : GREEN_B;
-      if ((left > 4000 && left%1000 > 900) || (left <= 4000 && left%500 > 400))
+      if ((left > (yellowLengthMillis+blinkingGreenLengthMillis) && left%1000 > 900) || (left <= (yellowLengthMillis+blinkingGreenLengthMillis) && left%500 > 400))
         stg += BUZZER;
     }
   } else {
@@ -95,10 +103,11 @@ void loop() {
   }
   int left = millisLeft();
   if (left > 1000)
-    barDisplay((millisLeft() - 1000) / ((turnLengthMillis - 1000) / 10) + 1);
+    barDisplay((millisLeft() - yellowLengthMillis) / ((turnLengthMillis - yellowLengthMillis) / 10) + 1);
   else barDisplay(0);
   if (millisLeft() <= 0) {
     turn = (turn == 'A') ? 'B' : 'A';
+    calculateTurnLength();
     turnStartedAt = millis();
   }
 }
@@ -116,4 +125,10 @@ void barDisplay(int count) {
   digitalWrite(S_LATCH_PIN, HIGH);
   digitalWrite(BAR_09_PIN, b09);
   digitalWrite(BAR_10_PIN, b10);
+}
+
+void calculateTurnLength() {
+  int pot_rotation = analogRead(POT_PIN);
+  float partLength = float(turnLengthMaxMillis - turnLengthMinMillis) / 1023;
+  turnLengthMillis = turnLengthMinMillis + (partLength * pot_rotation);
 }
